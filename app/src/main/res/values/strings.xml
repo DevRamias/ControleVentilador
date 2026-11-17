@@ -1,3 +1,7 @@
 <resources>
-    <string name="app_name">ControleVentilador</string>
+    <string name="app_name">Ventilador</string>
+    <!-- "Ok Google, abre ventilador" abre a tela de voz (liga / pergunta o tempo) -->
+    <string name="liga_name">Ventilador</string>
+    <!-- Icone que so mostra o painel, sem ligar nada -->
+    <string name="painel_name">Painel</string>
 </resources>

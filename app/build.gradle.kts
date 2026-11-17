@@ -14,14 +14,18 @@ android {
         applicationId = "com.example.controleventilador"
         minSdk = 30
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 4
+        versionName = "1.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         release {
+            // APK para instalar direto no celular (fora da Play Store): assina
+            // com a chave de depuracao do Android Studio deste PC. Para publicar
+            // na Play Store, trocar por uma chave propria.
+            signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

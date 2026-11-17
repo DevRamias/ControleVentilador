@@ -8,6 +8,19 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
 
+    <!-- Microfone: ouvir "meia hora", "sim, desliga"... na tela Liga -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- Android 11+: precisa declarar que o app usa o reconhecimento de voz e o TTS -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -19,10 +32,38 @@
         android:theme="@style/Theme.ControleVentilador"
         android:usesCleartextTraffic="true">
 
+        <!-- Icone "Ventilador" = tela de voz. E a PORTA DE ENTRADA do app:
+             "Ok Google, abre ventilador" procura o app pelo nome e abre a
+             atividade de entrada padrao. Para ser esta (e nao o Painel):
+               1) ela vem primeiro no manifesto;
+               2) tem a categoria INFO, que o Android consulta antes da
+                  LAUNCHER ao escolher a entrada padrao do app.
+             Liga por 5 min e pergunta o tempo (ou pergunta se quer desligar)
+             e fecha sozinha ao terminar. -->
+        <activity
+            android:name=".LigaActivity"
+            android:exported="true"
+            android:label="@string/liga_name"
+            android:launchMode="singleTask"
+            android:taskAffinity="com.example.controleventilador.liga"
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.ControleVentilador">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.INFO" />
+            </intent-filter>
+        </activity>
+
+        <!-- Icone "Painel": so mostra o painel da placa (sem ligar nada).
+             Tem um botao de microfone que abre a tela de voz. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:label="@string/app_name"
+            android:label="@string/painel_name"
             android:theme="@style/Theme.ControleVentilador">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

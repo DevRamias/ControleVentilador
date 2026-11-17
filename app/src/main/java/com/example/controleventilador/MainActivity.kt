@@ -1,6 +1,7 @@
 package com.example.controleventilador
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.os.Bundle
 import android.view.ViewGroup
 import android.webkit.WebChromeClient
@@ -17,12 +18,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.controleventilador.ui.theme.ControleVentiladorTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.net.HttpURLConnection
-import java.net.URL
 
 sealed class AppState {
     object Searching : AppState()
@@ -34,11 +34,10 @@ class MainActivity : ComponentActivity() {
     private lateinit var nsdHelper: NsdHelper
 
     // Guarda o ultimo endereco que funcionou: na proxima vez o app abre direto,
-    // sem esperar a busca na rede.
-    private val prefs by lazy { getSharedPreferences(PREFS, MODE_PRIVATE) }
+    // sem esperar a busca na rede (compartilhado com a tela "Liga").
     private var lastUrl: String?
-        get() = prefs.getString(KEY_LAST_URL, null)
-        set(value) = prefs.edit().putString(KEY_LAST_URL, value).apply()
+        get() = Device.lastUrl(this)
+        set(value) = Device.saveUrl(this, value)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -66,7 +65,7 @@ class MainActivity : ComponentActivity() {
 
                 // 1) Tenta o ultimo endereco (resposta em ~1,5 s no maximo)
                 val saved = lastUrl
-                if (saved != null && withContext(Dispatchers.IO) { isReachable(saved) }) {
+                if (saved != null && withContext(Dispatchers.IO) { Device.isReachable(saved) }) {
                     appState = AppState.Found(saved)
                 } else {
                     // 2) Nao respondeu (IP mudou, outra rede...): procura na rede
@@ -79,10 +78,24 @@ class MainActivity : ComponentActivity() {
                     Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
                         when (val state = appState) {
                             is AppState.Searching -> LoadingScreen()
-                            is AppState.Found -> WebViewScreen(state.url) {
-                                // A pagina nao carregou (placa mudou de IP?): procura de novo
-                                lastUrl = null
-                                search()
+                            is AppState.Found -> {
+                                WebViewScreen(state.url) {
+                                    // A pagina nao carregou (placa mudou de IP?): procura de novo
+                                    lastUrl = null
+                                    search()
+                                }
+                                // Comando de voz dentro do painel: abre a tela de voz
+                                // (desligado -> liga e pergunta o tempo; ligado -> pergunta se desliga)
+                                FloatingActionButton(
+                                    onClick = {
+                                        startActivity(Intent(this@MainActivity, LigaActivity::class.java))
+                                    },
+                                    modifier = Modifier
+                                        .align(Alignment.BottomStart)
+                                        .padding(20.dp)
+                                ) {
+                                    Text("🎤", fontSize = 24.sp)
+                                }
                             }
                             is AppState.Error -> ErrorScreen(state.message) { search() }
                         }
@@ -90,25 +103,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-    }
-
-    /** true se a placa respondeu em [url]/status dentro do tempo limite. */
-    private fun isReachable(url: String): Boolean = try {
-        val conn = URL("$url/status").openConnection() as HttpURLConnection
-        conn.connectTimeout = 1500
-        conn.readTimeout = 1500
-        try {
-            conn.responseCode == HttpURLConnection.HTTP_OK
-        } finally {
-            conn.disconnect()
-        }
-    } catch (e: Exception) {
-        false
-    }
-
-    companion object {
-        private const val PREFS = "controle_ventilador"
-        private const val KEY_LAST_URL = "last_url"
     }
 
     override fun onDestroy() {
